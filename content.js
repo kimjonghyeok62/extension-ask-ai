@@ -191,6 +191,7 @@ function esc(str) {
 function md(escaped) {
   return escaped
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^### (.+)$/gm, '<span class="lh-law-ref">$1</span>')
     .replace(/^#{1,2} (.+)$/gm, '<b>$1</b>')
     .replace(/^[▪·]\s*/gm, '• ')
     .replace(/\n/g, '<br>');

@@ -119,6 +119,16 @@ body.lh-panel-open iframe {
   word-break: keep-all;
 }
 
+/* 인용 조문 섹션의 법령명 소제목 */
+.lh-law-ref {
+  display: block;
+  margin-top: 12px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1558b0;
+}
+.lh-law-ref:first-child { margin-top: 2px; }
+
 .lh-loading {
   color: #888;
   text-align: center;
