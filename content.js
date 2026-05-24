@@ -188,6 +188,14 @@ function esc(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function md(escaped) {
+  return escaped
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^#{1,2} (.+)$/gm, '<b>$1</b>')
+    .replace(/^[▪·]\s*/gm, '• ')
+    .replace(/\n/g, '<br>');
+}
+
 function renderSections(text) {
   const SECTION_RE = /【([^】]+)】/g;
   let html = '';
@@ -196,27 +204,35 @@ function renderSections(text) {
 
   while ((match = SECTION_RE.exec(text)) !== null) {
     const before = text.slice(lastIndex, match.index).trim();
-    if (before) html += `<div class="lh-sec-body">${esc(before).replace(/\n/g, '<br>')}</div>`;
+    if (before) html += `<div class="lh-sec-body">${md(esc(before))}</div>`;
     html += `<div class="lh-sec-head">${esc(match[1])}</div>`;
     lastIndex = match.index + match[0].length;
   }
 
   const tail = text.slice(lastIndex).trim();
-  if (tail) html += `<div class="lh-sec-body">${esc(tail).replace(/\n/g, '<br>')}</div>`;
+  if (tail) html += `<div class="lh-sec-body">${md(esc(tail))}</div>`;
 
-  return html || esc(text).replace(/\n/g, '<br>');
+  return html || md(esc(text));
 }
 
 function openPanel() {
   explainPanel.classList.add('lh-open');
   document.documentElement.classList.add('lh-panel-open');
   document.body.classList.add('lh-panel-open');
+  document.querySelectorAll('iframe').forEach(fr => {
+    fr.dataset.lhPrevZ = fr.style.zIndex;
+    fr.style.setProperty('z-index', '-1', 'important');
+  });
 }
 
 function closePanel() {
   explainPanel.classList.remove('lh-open');
   document.documentElement.classList.remove('lh-panel-open');
   document.body.classList.remove('lh-panel-open');
+  document.querySelectorAll('iframe').forEach(fr => {
+    fr.style.zIndex = fr.dataset.lhPrevZ || '';
+    delete fr.dataset.lhPrevZ;
+  });
 }
 
 // ── 시작 ──────────────────────────────────────────────────────────────────────

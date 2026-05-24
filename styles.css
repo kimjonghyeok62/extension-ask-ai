@@ -8,9 +8,11 @@ body.lh-panel-open {
   overflow-x: hidden !important;
   transition: width 0.28s ease;
 }
-/* iframe이 있으면 같이 축소 */
+/* iframe이 있으면 같이 축소하고 패널 아래로 내림 */
 body.lh-panel-open iframe {
   max-width: 100% !important;
+  position: relative !important;
+  z-index: -1 !important;
 }
 
 /* ── 쉬운 설명 플로팅 버튼 ─────────────────────────────────────────────────── */
