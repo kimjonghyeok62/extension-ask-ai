@@ -2,100 +2,127 @@
 
 (async () => {
   const KEY = 'ai_pending_gemini';
-  const result = await chrome.storage.session.get(KEY);
+  const result = await chrome.storage.local.get(KEY);
   const pending = result[KEY];
 
   if (!pending || Date.now() - pending.ts > 30000) return;
-  await chrome.storage.session.remove(KEY);
+  await chrome.storage.local.remove(KEY);
+
+  const banner = showBanner();
 
   const input = await waitForInput([
     'rich-textarea div[contenteditable="true"]',
     'div[contenteditable="true"][role="textbox"]',
+    'div.ql-editor[contenteditable="true"]',
     'div[contenteditable="true"]',
     'textarea',
   ]);
 
-  if (input) {
-    injectText(input, pending.prompt);
-  } else {
-    copyFallback(pending.prompt);
+  if (!input) return;
+
+  input.focus();
+
+  const injected = tryInject(input, pending.prompt);
+  if (injected) {
+    banner.success();
   }
 })();
 
+// ── 주입 시도 ─────────────────────────────────────────────────────────────────
+
+function tryInject(el, text) {
+  // textarea는 value setter + input 이벤트로 처리 (Angular nativeElement 우회)
+  if (el.tagName === 'TEXTAREA') {
+    try {
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(el, text);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      if (el.value.trim()) return true;
+    } catch {}
+  }
+
+  // Method 1: execCommand insertText
+  try {
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    const ok = document.execCommand('insertText', false, text);
+    if (ok && el.textContent.trim()) return true;
+  } catch {}
+
+  // Method 2: ClipboardEvent paste
+  try {
+    const dt = new DataTransfer();
+    dt.setData('text/plain', text);
+    el.dispatchEvent(new ClipboardEvent('paste', {
+      clipboardData: dt,
+      bubbles: true,
+      cancelable: true,
+    }));
+    if (el.textContent.trim()) return true;
+  } catch {}
+
+  // Method 3: 직접 innerText + events
+  try {
+    el.innerText = text;
+    ['input', 'change'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
+    if (el.textContent.trim()) return true;
+  } catch {}
+
+  return false;
+}
+
+// ── 입력창 대기 ───────────────────────────────────────────────────────────────
+
 function waitForInput(selectors, maxMs = 15000) {
   return new Promise(resolve => {
-    const find = () => {
-      for (const sel of selectors) {
-        const el = document.querySelector(sel);
-        if (el) return el;
-      }
-      return null;
-    };
+    const find = () => selectors.reduce((found, sel) =>
+      found || document.querySelector(sel), null);
 
-    const found = find();
-    if (found) { setTimeout(() => resolve(found), 600); return; }
+    const el = find();
+    if (el) { setTimeout(() => resolve(el), 700); return; }
 
     const timer = setTimeout(() => { ob.disconnect(); resolve(null); }, maxMs);
 
     const ob = new MutationObserver(() => {
       const el = find();
-      if (el) {
-        clearTimeout(timer);
-        ob.disconnect();
-        setTimeout(() => resolve(el), 600);
-      }
+      if (el) { clearTimeout(timer); ob.disconnect(); setTimeout(() => resolve(el), 700); }
     });
-
-    const root = document.body || document.documentElement;
-    ob.observe(root, { childList: true, subtree: true });
+    ob.observe(document.documentElement, { childList: true, subtree: true });
   });
 }
 
-function injectText(el, text) {
-  el.focus();
+// ── 안내 배너 ─────────────────────────────────────────────────────────────────
 
-  // textarea는 value setter + input 이벤트로 처리
-  if (el.tagName === 'TEXTAREA') {
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
-    setter.call(el, text);
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    return;
-  }
-
-  // contenteditable: ClipboardEvent paste 우선
-  const dt = new DataTransfer();
-  dt.setData('text/plain', text);
-  el.dispatchEvent(new ClipboardEvent('paste', {
-    clipboardData: dt,
-    bubbles: true,
-    cancelable: true,
-  }));
-
-  // fallback: execCommand
-  if (!el.textContent.trim()) {
-    document.execCommand('selectAll', false, null);
-    document.execCommand('insertText', false, text);
-  }
-}
-
-function copyFallback(text) {
-  navigator.clipboard.writeText(text).catch(() => {});
+function showBanner() {
   const el = document.createElement('div');
+  el.id = '__ai-banner__';
   Object.assign(el.style, {
     position: 'fixed',
-    top: '16px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#222',
+    top: '0',
+    left: '0',
+    right: '0',
+    zIndex: '2147483647',
+    background: '#1a73e8',
     color: '#fff',
-    padding: '10px 18px',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontFamily: 'sans-serif',
-    zIndex: '999999',
-    pointerEvents: 'none',
+    fontFamily: '-apple-system, sans-serif',
+    fontSize: '14px',
+    fontWeight: '600',
+    padding: '12px 20px',
+    textAlign: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+    letterSpacing: '0.02em',
   });
-  el.textContent = '클립보드에 복사되었습니다. Ctrl+V로 붙여넣기 하세요.';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 5000);
+  el.textContent = '📋  텍스트가 클립보드에 복사되었습니다 — 입력창에 Ctrl+V 를 눌러주세요';
+  document.body.prepend(el);
+
+  return {
+    success() {
+      el.style.background = '#0f9d58';
+      el.textContent = '✅  자동 입력 완료!';
+      setTimeout(() => el.remove(), 2000);
+    },
+  };
 }

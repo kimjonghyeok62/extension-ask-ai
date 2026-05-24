@@ -16,7 +16,7 @@ async function handleOpen(service, prompt) {
   if (!url) return;
 
   // Store prompt keyed by service so multiple clicks don't clobber each other
-  await chrome.storage.session.set({
+  await chrome.storage.local.set({
     [`ai_pending_${service}`]: { prompt, ts: Date.now() },
   });
 
