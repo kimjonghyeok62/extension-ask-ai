@@ -1,67 +1,24 @@
 'use strict';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL   = 'claude-haiku-4-5-20251001';
+const AI_URLS = {
+  claude: 'https://claude.ai/new',
+  gemini: 'https://gemini.google.com/app',
+};
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === 'LH_EXPLAIN') {
-    handleExplain(msg.text, msg.apiKey)
-      .then(sendResponse)
-      .catch(e => { console.error('[LH BG]', e); sendResponse({ error: e.message }); });
-    return true;
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'AI_OPEN') {
+    handleOpen(msg.service, msg.prompt);
   }
 });
 
-async function handleExplain(text, apiKey) {
-  if (!apiKey) throw new Error('API 키가 설정되지 않았습니다');
+async function handleOpen(service, prompt) {
+  const url = AI_URLS[service];
+  if (!url) return;
 
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 2500,
-      system: `법령 조문을 일반 시민이 쉽게 이해할 수 있도록 설명합니다.
-
-공통 규칙
-- 어려운 법률 용어는 괄호 안에 쉬운 말로 병기 (예: 취소(무효화))
-- 숫자·기간·금액은 원문 그대로 유지
-- **중요한 개념이나 핵심 키워드**는 별표 두 개(**) 로 강조
-
-【조문 풀이】
-▪ **한 줄 요약**: 이 조문이 하려는 말을 한 문장으로
-▪ **핵심 내용**:
-  · 쉬운 말로 풀어낸 핵심 포인트 (3~5개, 짧고 명확하게)
-▪ **입법 취지**: 이 조문이 왜 만들어졌는지, 어떤 문제나 피해를 막으려 했는지 1~2문장
-
-【적용 예시】← 조문이 복잡할 때만 작성
-예) 실제 상황 → 이 조문이 어떻게 적용되는지 2~3문장
-(1~2개 사례)
-
-【관련 법령】← 인용 조항 있을 때만 작성
-- 「법명」 제X조: 본 조문과의 관계 한 줄
-
-【인용 조문】← 「법명」 제X조 형태로 인용된 조항이 있을 때만 작성
-조문에 등장하는 각 인용 조항의 실제 내용을 아래 형식으로 정리합니다.
-확실히 알고 있는 조항만 작성하고, 불확실하면 해당 항목은 생략하세요.
-
-### 「법명」 제X조(조문 제목)
-조항이 규정하는 내용을 1~2문장으로 요약`,
-      messages: [{ role: 'user', content: `다음 법령 조문을 위의 구조에 맞춰 설명해주세요:\n\n${text}` }],
-    }),
+  // Store prompt keyed by service so multiple clicks don't clobber each other
+  await chrome.storage.session.set({
+    [`ai_pending_${service}`]: { prompt, ts: Date.now() },
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`);
-  }
-
-  const data = await response.json();
-  return { explanation: data.content?.[0]?.text || '' };
+  chrome.windows.create({ url, type: 'normal', width: 1200, height: 900 });
 }
-
