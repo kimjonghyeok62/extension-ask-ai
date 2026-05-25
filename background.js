@@ -42,11 +42,32 @@ async function handleOpen(service, prompt, screenWidth, screenHeight, sourceWind
     [`ai_pending_${service}`]: { prompt, ts: Date.now() },
   });
 
-  const sw = screenWidth  || 1920;
-  const sh = screenHeight || 1080;
+  // chrome.system.display로 실제 작업 영역 취득 (DPI 스케일링·멀티모니터 대응)
+  // content.js의 window.screen 값은 DPI 환경에 따라 오차가 생길 수 있으므로 fallback으로만 사용
+  let wa = { left: 0, top: 0, width: screenWidth || 1920, height: screenHeight || 1080 };
+  try {
+    const displays = await chrome.system.display.getInfo();
+    let display;
+    if (sourceWindowId) {
+      const win = await chrome.windows.get(sourceWindowId);
+      const cx = win.left + win.width  / 2;
+      const cy = win.top  + win.height / 2;
+      display = displays.find(d =>
+        cx >= d.workArea.left && cx < d.workArea.left + d.workArea.width &&
+        cy >= d.workArea.top  && cy < d.workArea.top  + d.workArea.height
+      );
+    }
+    display = display || displays.find(d => d.isPrimary) || displays[0];
+    if (display && display.workArea) wa = display.workArea;
+  } catch {}
+
+  const sw = wa.width;
+  const sh = wa.height;
   const mainWidth = Math.round(sw * 0.75);
-  const sideLeft  = mainWidth - 16;
-  const sideWidth = sw - sideLeft - 1;
+  // DWM 비가시 테두리 보정: 두 창 사이 8px×2=16px 빈틈을 없애 시각적으로 붙어 보이게 함
+  const sideLeft  = wa.left + mainWidth - 16;
+  // 우측 여유 8px 확보 → DWM 그림자와 무관하게 X버튼이 항상 화면 안에 표시됨
+  const sideWidth = sw - mainWidth + 8;
 
   // 원본 창의 현재 크기·위치·상태 저장
   let originalBounds = null;
@@ -65,8 +86,8 @@ async function handleOpen(service, prompt, screenWidth, screenHeight, sourceWind
 
     await chrome.windows.update(sourceWindowId, {
       state: 'normal',
-      left: 0,
-      top: 0,
+      left: wa.left,
+      top:  wa.top,
       width: mainWidth,
       height: sh,
     });
@@ -77,8 +98,8 @@ async function handleOpen(service, prompt, screenWidth, screenHeight, sourceWind
     url,
     type: 'normal',
     left: sideLeft,
-    top: 0,
-    width: sideWidth,
+    top:  wa.top,
+    width:  sideWidth,
     height: sh,
   });
 

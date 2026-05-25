@@ -29,12 +29,16 @@ icons/icon.svg      — 아이콘
 
 ## 창 분할 수식 (background.js)
 ```js
+// chrome.system.display로 실제 작업 영역(wa) 취득 후:
+const sw = wa.width;
 const mainWidth = Math.round(sw * 0.75);
-const sideLeft  = mainWidth - 16;   // Windows DWM 8px×2 border 보정 (겹침 방지 위한 -16)
-const sideWidth = sw - sideLeft - 1; // -1: 우측 끝 X버튼 클리핑 방지
+const sideLeft  = wa.left + mainWidth - 16;  // DWM 8px×2 보정 → 두 창 시각적으로 붙음
+const sideWidth = sw - mainWidth + 8;        // 우측 8px 여유 → X버튼 항상 화면 안에 표시
 ```
-- Windows DWM 비가시 테두리가 창마다 8px씩 있어서, 두 창 사이 16px 빈틈이 생김
-- `sideLeft = mainWidth - 16` 으로 겹쳐서 시각적으로 붙어 보이게 함
+- `chrome.system.display.getInfo()`로 실제 작업 영역을 읽어 DPI 스케일링·멀티모니터 대응
+- `wa.left` 오프셋을 더해 2번째 모니터에서도 정확히 배치
+- DWM 비가시 테두리(8px×2)로 두 창 사이 16px 빈틈이 생기므로 `-16` 겹침 보정 유지
+- 우측 8px 여유: `sideLeft + sideWidth = wa.left + sw - 8` → X버튼 클리핑 방지
 
 ## 프롬프트 형식
 ```
@@ -57,6 +61,6 @@ Gemini는 textarea도 처리 (HTMLTextAreaElement.prototype.value 네이티브 s
 
 ## 코드 수정 시 주의사항
 - 전체 파일 재출력 하지 말고 수정 부분만 before → after 형태로
-- manifest.json: permissions `["storage", "windows", "clipboardWrite"]` — 추가 권한 필요 시 명시
+- manifest.json: permissions `["storage", "windows", "clipboardWrite", "system.display"]` — 추가 권한 필요 시 명시
 - claude.ai, gemini.google.com은 content_scripts exclude_matches에서 제외되어 있음 (inject 전용)
 - 창 분할 수식 건드릴 때는 DWM 보정값(-16) 유지할 것
