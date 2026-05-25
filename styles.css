@@ -1,142 +1,49 @@
-/* ── 패널 열릴 때 본문 밀어내기 ─────────────────────────────────────────── */
-html.lh-panel-open {
-  overflow-x: hidden;
-}
-body.lh-panel-open {
-  margin-right: 360px !important;
-  max-width: calc(100vw - 360px) !important;
-  min-width: 0 !important;
-  overflow-x: hidden !important;
-  transition: margin-right 0.28s ease;
-}
-/* iframe이 있으면 패널 아래로 내림 */
-body.lh-panel-open iframe {
-  position: relative !important;
-  z-index: -1 !important;
-}
-
-/* ── 쉬운 설명 플로팅 버튼 ─────────────────────────────────────────────────── */
-#lh-explain-btn {
+/* ── AI 설명 도우미 툴바 ──────────────────────────────────────────────────── */
+#ai-toolbar {
   position: absolute;
   display: none;
-  padding: 5px 12px;
-  background: #1a73e8;
-  color: #fff;
-  border: none;
-  border-radius: 16px;
-  font-size: 12px;
-  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-  z-index: 2147483646;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-#lh-explain-btn.lh-visible { display: block; }
-#lh-explain-btn:hover { background: #1558b0; }
-
-/* ── 사이드 패널 ──────────────────────────────────────────────────────────── */
-#lh-panel {
-  position: fixed;
-  top: 0;
-  right: -380px;
-  width: 360px;
-  height: 100vh;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 6px;
   background: #fff;
-  box-shadow: -3px 0 16px rgba(0,0,0,0.18);
+  border-radius: 24px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.10);
   z-index: 2147483647;
-  display: flex;
-  flex-direction: column;
-  transition: right 0.28s ease;
-  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  user-select: none;
+  font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
-#lh-panel.lh-open { right: 0; }
 
-#lh-panel-head {
+#ai-toolbar.ai-visible { display: flex; }
+
+.ai-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: #1a73e8;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-#lh-panel-close {
-  background: none;
+  gap: 5px;
+  padding: 5px 12px;
   border: none;
-  color: #fff;
-  font-size: 16px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  transition: filter 0.12s, transform 0.1s;
   line-height: 1;
 }
-#lh-panel-close:hover { background: rgba(255,255,255,0.2); }
 
-#lh-panel-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #222;
+.ai-btn:hover  { filter: brightness(0.88); }
+.ai-btn:active { filter: brightness(0.78); transform: scale(0.96); }
+
+/* Google Gemini 계열 색상 */
+.ai-gemini-btn {
+  background: linear-gradient(135deg, #4285F4 0%, #0F9D58 100%);
+  color: #fff;
 }
 
-.lh-source {
-  padding: 8px 10px;
-  background: #f5f5f5;
-  border-left: 3px solid #1a73e8;
-  border-radius: 0 4px 4px 0;
-  font-size: 11px;
-  color: #555;
-  margin-bottom: 14px;
-  word-break: break-all;
-}
-
-.lh-result { color: #1a1a1a; }
-
-.lh-sec-head {
-  margin: 16px 0 6px;
-  padding: 5px 10px;
-  background: #e8f0fe;
-  border-left: 3px solid #1a73e8;
-  border-radius: 0 4px 4px 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: #1558b0;
-  letter-spacing: 0.03em;
-}
-.lh-sec-head:first-child { margin-top: 0; }
-
-.lh-sec-body {
-  padding: 4px 2px 4px 12px;
-  font-size: 13px;
-  line-height: 1.8;
-  color: #222;
-  word-break: keep-all;
-}
-
-/* 인용 조문 섹션의 법령명 소제목 */
-.lh-law-ref {
-  display: block;
-  margin-top: 12px;
-  font-weight: 700;
-  font-size: 12px;
-  color: #1558b0;
-}
-.lh-law-ref:first-child { margin-top: 2px; }
-
-.lh-loading {
-  color: #888;
-  text-align: center;
-  margin-top: 40px;
-}
-
-.lh-error {
-  color: #c62828;
-  font-size: 12px;
-  line-height: 1.6;
+/* Anthropic Claude 계열 색상 */
+.ai-claude-btn {
+  background: linear-gradient(135deg, #D97B3A 0%, #8B4A1E 100%);
+  color: #fff;
 }

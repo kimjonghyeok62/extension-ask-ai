@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "법 쉽게 설명",
-  "version": "1.0.0",
-  "description": "텍스트를 선택하거나 문단을 클릭하면 Claude AI가 쉽게 설명해줍니다.",
+  "name": "AI 쉬운 설명",
+  "version": "2.0.0",
+  "description": "어느 웹페이지에서든 텍스트를 드래그하면 Gemini·Claude로 쉽게 설명합니다.",
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icons/icon.svg"
@@ -12,14 +12,26 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.law.go.kr/*"],
+      "matches": ["<all_urls>"],
+      "exclude_matches": [
+        "*://claude.ai/*",
+        "*://gemini.google.com/*"
+      ],
       "js": ["content.js"],
       "css": ["styles.css"],
-      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://claude.ai/*"],
+      "js": ["claude-inject.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://gemini.google.com/*"],
+      "js": ["gemini-inject.js"],
       "run_at": "document_idle"
     }
   ],
-  "options_page": "options.html",
-  "permissions": ["storage"],
-  "host_permissions": ["https://api.anthropic.com/*"]
+  "permissions": ["storage", "windows", "clipboardWrite"],
+  "host_permissions": ["<all_urls>"]
 }
