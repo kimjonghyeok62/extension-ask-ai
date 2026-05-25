@@ -18,9 +18,10 @@
 
   if (!input) return;
 
+  window.focus();
   input.click();
   input.focus();
-  await new Promise(r => setTimeout(r, 150));
+  await new Promise(r => setTimeout(r, 200));
   tryInject(input, pending.prompt);
 })();
 
@@ -57,24 +58,7 @@ function tryInject(el, text) {
     if (ok && el.textContent.trim()) return true;
   } catch {}
 
-  // Method 3: innerHTML 직접 설정 + InputEvent (Angular change detection 트리거)
-  try {
-    el.focus();
-    el.innerHTML = '';
-    const p = document.createElement('p');
-    p.textContent = text;
-    el.appendChild(p);
-    const range = document.createRange();
-    range.setStartAfter(p);
-    range.collapse(true);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    el.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: text, bubbles: true }));
-    if (el.textContent.trim()) return true;
-  } catch {}
-
-  // Method 4: ClipboardEvent paste
+  // Method 3: ClipboardEvent paste
   try {
     const dt = new DataTransfer();
     dt.setData('text/plain', text);
