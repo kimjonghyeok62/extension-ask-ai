@@ -8,8 +8,6 @@
   if (!pending || Date.now() - pending.ts > 30000) return;
   await chrome.storage.local.remove(KEY);
 
-  const banner = showBanner();
-
   const input = await waitForInput([
     'rich-textarea div[contenteditable="true"]',
     'div[contenteditable="true"][role="textbox"]',
@@ -21,11 +19,7 @@
   if (!input) return;
 
   input.focus();
-
-  const injected = tryInject(input, pending.prompt);
-  if (injected) {
-    banner.success();
-  }
+  tryInject(input, pending.prompt);
 })();
 
 // ── 주입 시도 ─────────────────────────────────────────────────────────────────
@@ -92,37 +86,4 @@ function waitForInput(selectors, maxMs = 15000) {
     });
     ob.observe(document.documentElement, { childList: true, subtree: true });
   });
-}
-
-// ── 안내 배너 ─────────────────────────────────────────────────────────────────
-
-function showBanner() {
-  const el = document.createElement('div');
-  el.id = '__ai-banner__';
-  Object.assign(el.style, {
-    position: 'fixed',
-    top: '0',
-    left: '0',
-    right: '0',
-    zIndex: '2147483647',
-    background: '#1a73e8',
-    color: '#fff',
-    fontFamily: '-apple-system, sans-serif',
-    fontSize: '14px',
-    fontWeight: '600',
-    padding: '12px 20px',
-    textAlign: 'center',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-    letterSpacing: '0.02em',
-  });
-  el.textContent = '📋  텍스트가 클립보드에 복사되었습니다 — 입력창에 Ctrl+V 를 눌러주세요';
-  document.body.prepend(el);
-
-  return {
-    success() {
-      el.style.background = '#0f9d58';
-      el.textContent = '✅  자동 입력 완료!';
-      setTimeout(() => el.remove(), 2000);
-    },
-  };
 }

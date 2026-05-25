@@ -82,12 +82,18 @@ function openAI(service) {
   if (!selectedText) return;
   hideToolbar();
 
-  const prompt = `다음 내용을 쉽게 설명해주세요:\n\n${selectedText}`;
+  const prompt = `${selectedText}\n\n위 내용을 쉽게 설명해주세요`;
 
   // 사용자 제스처가 살아있는 지금 클립보드에 기록 (inject 스크립트는 제스처 없음)
   navigator.clipboard.writeText(prompt).catch(() => {});
 
-  chrome.runtime.sendMessage({ type: 'AI_OPEN', service, prompt });
+  chrome.runtime.sendMessage({
+    type: 'AI_OPEN',
+    service,
+    prompt,
+    screenWidth: window.screen.availWidth,
+    screenHeight: window.screen.availHeight,
+  });
 }
 
 if (document.readyState === 'loading') {
