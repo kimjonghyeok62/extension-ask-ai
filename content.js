@@ -9,25 +9,9 @@ function init() {
   toolbar = document.createElement('div');
   toolbar.id = 'ai-toolbar';
   toolbar.innerHTML = `
-    <button class="ai-btn ai-gemini-btn" data-ai="gemini" title="Gemini로 쉽게 설명">
-      <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 2C12 7.52 16.48 12 22 12C16.48 12 12 16.48 12 22C12 16.48 7.52 12 2 12C7.52 12 12 7.52 12 2Z" fill="currentColor"/>
-      </svg>
-      Gemini
-    </button>
-    <button class="ai-btn ai-claude-btn" data-ai="claude" title="Claude로 쉽게 설명">
-      <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
-        <g transform="translate(12,12)" fill="currentColor">
-          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(0)"/>
-          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(60)"/>
-          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(120)"/>
-          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(180)"/>
-          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(240)"/>
-          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(300)"/>
-        </g>
-      </svg>
-      Claude
-    </button>
+    <button class="ai-btn ai-gemini-btn" data-ai="gemini" title="Gemini로 쉽게 설명">Gemini</button>
+    <button class="ai-btn ai-claude-btn" data-ai="claude" title="Claude로 쉽게 설명">Claude</button>
+    <button class="ai-btn ai-chatgpt-btn" data-ai="chatgpt" title="ChatGPT로 쉽게 설명">ChatGPT</button>
   `;
   document.body.appendChild(toolbar);
 
