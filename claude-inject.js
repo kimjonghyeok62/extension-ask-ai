@@ -17,7 +17,10 @@
 
   if (!input) return;
 
+  window.focus();
+  input.click();
   input.focus();
+  await new Promise(r => setTimeout(r, 200));
   tryInject(input, pending.prompt);
 })();
 

@@ -15,7 +15,8 @@
       "matches": ["<all_urls>"],
       "exclude_matches": [
         "*://claude.ai/*",
-        "*://gemini.google.com/*"
+        "*://gemini.google.com/*",
+        "*://chatgpt.com/*"
       ],
       "js": ["content.js"],
       "css": ["styles.css"],
@@ -30,6 +31,11 @@
     {
       "matches": ["*://gemini.google.com/*"],
       "js": ["gemini-inject.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://chatgpt.com/*"],
+      "js": ["chatgpt-inject.js"],
       "run_at": "document_idle"
     }
   ],

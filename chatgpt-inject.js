@@ -1,7 +1,7 @@
 'use strict';
 
 (async () => {
-  const KEY = 'ai_pending_gemini';
+  const KEY = 'ai_pending_chatgpt';
   const result = await chrome.storage.local.get(KEY);
   const pending = result[KEY];
 
@@ -9,26 +9,25 @@
   await chrome.storage.local.remove(KEY);
 
   const input = await waitForInput([
-    'rich-textarea div[contenteditable="true"]',
-    'div[contenteditable="true"][role="textbox"]',
-    'div.ql-editor[contenteditable="true"]',
+    'div#prompt-textarea[contenteditable="true"]',
+    'div[contenteditable="true"][data-placeholder]',
+    '[contenteditable="true"][role="textbox"]',
     'div[contenteditable="true"]',
+    'textarea#prompt-textarea',
     'textarea',
   ]);
 
   if (!input) return;
 
-  window.focus();
   input.click();
   input.focus();
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, 150));
   tryInject(input, pending.prompt);
 })();
 
 // ── 주입 시도 ─────────────────────────────────────────────────────────────────
 
 function tryInject(el, text) {
-  // textarea는 value setter + input 이벤트로 처리 (Angular nativeElement 우회)
   if (el.tagName === 'TEXTAREA') {
     try {
       const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
@@ -38,7 +37,7 @@ function tryInject(el, text) {
     } catch {}
   }
 
-  // Method 1: click 활성화 후 selectAll + execCommand (Angular 대응)
+  // Method 1: selectAll + execCommand (ChatGPT React 대응)
   try {
     el.click();
     el.focus();
@@ -47,7 +46,7 @@ function tryInject(el, text) {
     if (ok && el.textContent.trim()) return true;
   } catch {}
 
-  // Method 2: range selectNodeContents + execCommand
+  // Method 2: range + execCommand
   try {
     const sel = window.getSelection();
     const range = document.createRange();
@@ -58,15 +57,28 @@ function tryInject(el, text) {
     if (ok && el.textContent.trim()) return true;
   } catch {}
 
-  // Method 3: ClipboardEvent paste
+  // Method 3: innerHTML + InputEvent (React synthetic event 트리거)
+  try {
+    el.focus();
+    el.innerHTML = '';
+    const p = document.createElement('p');
+    p.textContent = text;
+    el.appendChild(p);
+    const range = document.createRange();
+    range.setStartAfter(p);
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    el.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: text, bubbles: true }));
+    if (el.textContent.trim()) return true;
+  } catch {}
+
+  // Method 4: ClipboardEvent paste
   try {
     const dt = new DataTransfer();
     dt.setData('text/plain', text);
-    el.dispatchEvent(new ClipboardEvent('paste', {
-      clipboardData: dt,
-      bubbles: true,
-      cancelable: true,
-    }));
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
     if (el.textContent.trim()) return true;
   } catch {}
 
