@@ -8,26 +8,70 @@
   if (!pending || Date.now() - pending.ts > 30000) return;
   await chrome.storage.local.remove(KEY);
 
-  const input = await waitForInput([
+  const selectors = [
     'div.ProseMirror[contenteditable="true"]',
     'div[contenteditable="true"][data-placeholder]',
     '[contenteditable="true"][role="textbox"]',
     'div[contenteditable="true"]',
-  ]);
+  ];
 
+  const input = await waitForInput(selectors);
   if (!input) return;
 
+  // DOM 갱신을 고려하여 주입 직전 최신 엘리먼트 다시 찾기
+  let activeInput = document.body.contains(input) ? input : null;
+  if (!activeInput) {
+    for (const sel of selectors) {
+      const found = document.querySelector(sel);
+      if (found && document.body.contains(found)) {
+        activeInput = found;
+        break;
+      }
+    }
+  }
+  if (!activeInput) activeInput = input;
+
   window.focus();
-  input.click();
-  input.focus();
-  await new Promise(r => setTimeout(r, 200));
-  tryInject(input, pending.prompt);
+  activeInput.click();
+  activeInput.focus();
+  await new Promise(r => setTimeout(r, 300));
+
+  // 주입하기 직전 다시 한 번 확인
+  if (!document.body.contains(activeInput)) {
+    activeInput = selectors.reduce((found, sel) => found || document.querySelector(sel), null) || activeInput;
+  }
+
+  tryInject(activeInput, pending.prompt, selectors);
 })();
 
 // ── 주입 시도 ─────────────────────────────────────────────────────────────────
 
-function tryInject(el, text) {
-  // Method 1: execCommand insertText — contenteditable + ProseMirror에 가장 신뢰도 높음
+function tryInject(el, text, selectors) {
+  if (!el || !document.body.contains(el)) {
+    if (selectors) {
+      el = selectors.reduce((found, sel) => found || document.querySelector(sel), null) || el;
+    }
+  }
+  if (!el) return false;
+
+  // Method 1: ClipboardEvent paste (React SyntheticEvent 경유 - 현대 에디터 최적화)
+  try {
+    el.focus();
+    const dt = new DataTransfer();
+    dt.setData('text/plain', text);
+    const pasteEvent = new ClipboardEvent('paste', {
+      clipboardData: dt,
+      bubbles: true,
+      cancelable: true,
+    });
+    el.dispatchEvent(pasteEvent);
+    if (el.textContent.trim().includes(text.trim())) {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
+  } catch {}
+
+  // Method 2: execCommand insertText — contenteditable + ProseMirror
   try {
     const sel = window.getSelection();
     const range = document.createRange();
@@ -35,19 +79,10 @@ function tryInject(el, text) {
     sel.removeAllRanges();
     sel.addRange(range);
     const ok = document.execCommand('insertText', false, text);
-    if (ok && el.textContent.trim()) return true;
-  } catch {}
-
-  // Method 2: ClipboardEvent paste (React SyntheticEvent 경유)
-  try {
-    const dt = new DataTransfer();
-    dt.setData('text/plain', text);
-    el.dispatchEvent(new ClipboardEvent('paste', {
-      clipboardData: dt,
-      bubbles: true,
-      cancelable: true,
-    }));
-    if (el.textContent.trim()) return true;
+    if (ok && el.textContent.trim()) {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
   } catch {}
 
   // Method 3: 직접 innerText 설정 + input/change 이벤트 (마지막 수단)

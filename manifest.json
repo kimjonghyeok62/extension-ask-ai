@@ -34,7 +34,11 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["*://chatgpt.com/*"],
+      "matches": [
+        "*://chatgpt.com/*",
+        "*://www.chatgpt.com/*",
+        "*://chat.openai.com/*"
+      ],
       "js": ["chatgpt-inject.js"],
       "run_at": "document_idle"
     }
