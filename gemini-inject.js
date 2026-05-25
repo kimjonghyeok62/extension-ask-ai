@@ -18,7 +18,9 @@
 
   if (!input) return;
 
+  input.click();
   input.focus();
+  await new Promise(r => setTimeout(r, 150));
   tryInject(input, pending.prompt);
 })();
 
@@ -35,7 +37,16 @@ function tryInject(el, text) {
     } catch {}
   }
 
-  // Method 1: execCommand insertText
+  // Method 1: click 활성화 후 selectAll + execCommand (Angular 대응)
+  try {
+    el.click();
+    el.focus();
+    document.execCommand('selectAll', false, null);
+    const ok = document.execCommand('insertText', false, text);
+    if (ok && el.textContent.trim()) return true;
+  } catch {}
+
+  // Method 2: range selectNodeContents + execCommand
   try {
     const sel = window.getSelection();
     const range = document.createRange();
@@ -46,7 +57,24 @@ function tryInject(el, text) {
     if (ok && el.textContent.trim()) return true;
   } catch {}
 
-  // Method 2: ClipboardEvent paste
+  // Method 3: innerHTML 직접 설정 + InputEvent (Angular change detection 트리거)
+  try {
+    el.focus();
+    el.innerHTML = '';
+    const p = document.createElement('p');
+    p.textContent = text;
+    el.appendChild(p);
+    const range = document.createRange();
+    range.setStartAfter(p);
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    el.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: text, bubbles: true }));
+    if (el.textContent.trim()) return true;
+  } catch {}
+
+  // Method 4: ClipboardEvent paste
   try {
     const dt = new DataTransfer();
     dt.setData('text/plain', text);
@@ -58,7 +86,7 @@ function tryInject(el, text) {
     if (el.textContent.trim()) return true;
   } catch {}
 
-  // Method 3: 직접 innerText + events
+  // Method 5: innerText + events
   try {
     el.innerText = text;
     ['input', 'change'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
@@ -76,13 +104,13 @@ function waitForInput(selectors, maxMs = 15000) {
       found || document.querySelector(sel), null);
 
     const el = find();
-    if (el) { setTimeout(() => resolve(el), 700); return; }
+    if (el) { setTimeout(() => resolve(el), 1500); return; }
 
     const timer = setTimeout(() => { ob.disconnect(); resolve(null); }, maxMs);
 
     const ob = new MutationObserver(() => {
       const el = find();
-      if (el) { clearTimeout(timer); ob.disconnect(); setTimeout(() => resolve(el), 700); }
+      if (el) { clearTimeout(timer); ob.disconnect(); setTimeout(() => resolve(el), 1500); }
     });
     ob.observe(document.documentElement, { childList: true, subtree: true });
   });
