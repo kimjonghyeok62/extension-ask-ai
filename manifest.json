@@ -54,6 +54,6 @@
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["storage", "windows", "clipboardWrite"],
+  "permissions": ["storage", "windows", "clipboardWrite", "system.display"],
   "host_permissions": ["<all_urls>"]
 }
