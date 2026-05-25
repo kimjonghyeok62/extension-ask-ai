@@ -17,7 +17,14 @@ function init() {
     </button>
     <button class="ai-btn ai-claude-btn" data-ai="claude" title="Claude로 쉽게 설명">
       <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3L2 20h20L12 3zm0 5l5.5 10h-11L12 8z" fill="currentColor"/>
+        <g transform="translate(12,12)" fill="currentColor">
+          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(0)"/>
+          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(60)"/>
+          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(120)"/>
+          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(180)"/>
+          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(240)"/>
+          <rect x="-1.7" y="-9.5" width="3.4" height="9.5" rx="1.7" transform="rotate(300)"/>
+        </g>
       </svg>
       Claude
     </button>
@@ -85,7 +92,8 @@ function openAI(service) {
   const prompt = `${selectedText}\n\n위 내용을 쉽게 설명해주세요`;
 
   // 사용자 제스처가 살아있는 지금 클립보드에 기록 (inject 스크립트는 제스처 없음)
-  navigator.clipboard.writeText(prompt).catch(() => {});
+  // HTTP 페이지는 navigator.clipboard 자체가 undefined — optional chaining으로 무시
+  navigator.clipboard?.writeText(prompt).catch(() => {});
 
   chrome.runtime.sendMessage({
     type: 'AI_OPEN',
