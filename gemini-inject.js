@@ -8,43 +8,79 @@
   if (!pending || Date.now() - pending.ts > 30000) return;
   await chrome.storage.local.remove(KEY);
 
-  const input = await waitForInput([
+  const selectors = [
     'rich-textarea div[contenteditable="true"]',
     'div[contenteditable="true"][role="textbox"]',
     'div.ql-editor[contenteditable="true"]',
     'div[contenteditable="true"]',
     'textarea',
-  ]);
+  ];
 
+  const input = await waitForInput(selectors);
   if (!input) return;
 
+  // DOM 갱신을 고려하여 주입 직전 최신 엘리먼트 다시 찾기
+  let activeInput = document.body.contains(input) ? input : null;
+  if (!activeInput) {
+    for (const sel of selectors) {
+      const found = document.querySelector(sel);
+      if (found && document.body.contains(found)) {
+        activeInput = found;
+        break;
+      }
+    }
+  }
+  if (!activeInput) activeInput = input;
+
   window.focus();
-  input.click();
-  input.focus();
-  await new Promise(r => setTimeout(r, 200));
-  tryInject(input, pending.prompt);
+  activeInput.click();
+  activeInput.focus();
+  await new Promise(r => setTimeout(r, 300));
+
+  // 주입하기 직전 다시 한 번 확인
+  if (!document.body.contains(activeInput)) {
+    activeInput = selectors.reduce((found, sel) => found || document.querySelector(sel), null) || activeInput;
+  }
+
+  tryInject(activeInput, pending.prompt, selectors);
 })();
 
 // ── 주입 시도 ─────────────────────────────────────────────────────────────────
 
-function tryInject(el, text) {
-  // textarea는 value setter + input 이벤트로 처리 (Angular nativeElement 우회)
+function tryInject(el, text, selectors) {
+  if (!el || !document.body.contains(el)) {
+    if (selectors) {
+      el = selectors.reduce((found, sel) => found || document.querySelector(sel), null) || el;
+    }
+  }
+  if (!el) return false;
+
+  // TEXTAREA의 경우 기존 Angular nativeElement 우회
   if (el.tagName === 'TEXTAREA') {
     try {
       const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
       setter.call(el, text);
       el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
       if (el.value.trim()) return true;
     } catch {}
   }
 
-  // Method 1: click 활성화 후 selectAll + execCommand (Angular 대응)
+  // Method 1: ClipboardEvent paste (Angular/Quill 등 최신 리치 에디터의 이벤트 감지에 가장 효과적)
   try {
-    el.click();
     el.focus();
-    document.execCommand('selectAll', false, null);
-    const ok = document.execCommand('insertText', false, text);
-    if (ok && el.textContent.trim()) return true;
+    const dt = new DataTransfer();
+    dt.setData('text/plain', text);
+    const pasteEvent = new ClipboardEvent('paste', {
+      clipboardData: dt,
+      bubbles: true,
+      cancelable: true,
+    });
+    el.dispatchEvent(pasteEvent);
+    if (el.textContent.trim().includes(text.trim())) {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
   } catch {}
 
   // Method 2: range selectNodeContents + execCommand
@@ -55,25 +91,28 @@ function tryInject(el, text) {
     sel.removeAllRanges();
     sel.addRange(range);
     const ok = document.execCommand('insertText', false, text);
-    if (ok && el.textContent.trim()) return true;
+    if (ok && el.textContent.trim()) {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
   } catch {}
 
-  // Method 3: ClipboardEvent paste
+  // Method 3: click 활성화 후 selectAll + execCommand (Angular 대응 fallback)
   try {
-    const dt = new DataTransfer();
-    dt.setData('text/plain', text);
-    el.dispatchEvent(new ClipboardEvent('paste', {
-      clipboardData: dt,
-      bubbles: true,
-      cancelable: true,
-    }));
-    if (el.textContent.trim()) return true;
+    el.click();
+    el.focus();
+    document.execCommand('selectAll', false, null);
+    const ok = document.execCommand('insertText', false, text);
+    if (ok && el.textContent.trim()) {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
   } catch {}
 
-  // Method 5: innerText + events
+  // Method 4: innerText + events
   try {
     el.innerText = text;
-    ['input', 'change'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
+    ['input', 'change', 'blur'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
     if (el.textContent.trim()) return true;
   } catch {}
 
