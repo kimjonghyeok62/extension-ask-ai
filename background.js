@@ -49,14 +49,14 @@ async function handleOpen(service, prompt, screen, sourceWindowId) {
   const sw = screen?.width  || 1920;
   const sh = screen?.height || 1080;
 
-  const mainWidth = Math.round(sw * 0.75);
-  // DWM 비가시 테두리 보정: 두 창 사이 8px×2=16px 빈틈 제거 (시각적으로 붙어 보이게)
-  const rawSideLeft  = sl + mainWidth - 16;
-  // 오른쪽에서 최소 12px 여유 + Chrome 최소 창 너비(360px) 보장
-  const rawSideWidth = sw - mainWidth + 12;
-  const sideWidth    = Math.max(rawSideWidth, 360);
-  // sideWidth가 클램프된 경우 sideLeft를 왼쪽으로 당겨 화면 안에 맞춤
-  const sideLeft     = Math.min(rawSideLeft, sl + sw - sideWidth - 12);
+  // Claude·Gemini·ChatGPT 표시에 필요한 최소 너비 (Chrome 강제 최소 너비 포함)
+  // 이 값보다 좁게 요청하면 Chrome이 강제로 늘려 X버튼이 화면 밖으로 밀림
+  const MIN_SIDE = 500;
+  const sideWidth = Math.max(Math.round(sw * 0.25), MIN_SIDE);
+  // sideLeft + sideWidth = sl + sw - 12 이 되도록 mainWidth 역산
+  // (sideLeft = sl + mainWidth - 16 이므로: mainWidth = sw - sideWidth + 4)
+  const mainWidth = sw - sideWidth + 4;
+  const sideLeft  = sl + mainWidth - 16;
 
   // 원본 창의 현재 크기·위치·상태 저장
   let originalBounds = null;
