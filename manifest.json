@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "법령 핵심 문구 하이라이터",
+  "name": "법 쉽게 설명",
   "version": "1.0.0",
-  "description": "법제처 법령을 Claude AI로 분석하여 핵심 문구를 자동으로 굵게 강조합니다.",
+  "description": "텍스트를 선택하거나 문단을 클릭하면 Claude AI가 쉽게 설명해줍니다.",
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icons/icon.svg"

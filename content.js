@@ -8,6 +8,9 @@ let explainBtn = null;
 let explainPanel = null;
 let explainTarget = null;
 
+// 패널 오픈 시 밀어낸 요소들 (복원용)
+let _pushedEls = [];
+
 // ── 초기화 ────────────────────────────────────────────────────────────────────
 
 async function init() {
@@ -58,6 +61,7 @@ function initExplain() {
 }
 
 function onMouseUp(e) {
+  if (!isEnabled) return;
   if (e.target.closest('#lh-panel') || e.target === explainBtn) return;
 
   setTimeout(() => {
@@ -73,6 +77,7 @@ function onMouseUp(e) {
 }
 
 function onDocClick(e) {
+  if (!isEnabled) return;
   if (e.target.closest('#lh-panel') || e.target === explainBtn) return;
 
   const sel = window.getSelection();
@@ -218,10 +223,67 @@ function renderSections(text) {
   return html || md(esc(text));
 }
 
+function _pushContent() {
+  _pushedEls = [];
+  const PW = 360;
+
+  // BFS: body 하위 최대 5단계까지 탐색
+  // 뷰포트 오른쪽 끝에 닿는 대형 요소를 찾아서 직접 밀어냄
+  const visited = new Set([document.documentElement, document.body]);
+  let level = Array.from(document.body.children);
+
+  for (let depth = 0; depth < 5 && level.length; depth++) {
+    const nextLevel = [];
+    for (const el of level) {
+      if (visited.has(el)) continue;
+      visited.add(el);
+      if (el.id === 'lh-panel' || el.id === 'lh-explain-btn') continue;
+
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+      if (cs.position === 'fixed') continue;
+
+      const rect = el.getBoundingClientRect();
+      const reachesRight = rect.right >= window.innerWidth - 80;
+      const isLarge = rect.width > window.innerWidth * 0.35 && rect.height > 60;
+
+      if (reachesRight && isLarge) {
+        // 이미 충분히 밀려있으면 스킵
+        const curMR = parseFloat(cs.marginRight) || 0;
+        if (curMR >= PW - 10) continue;
+
+        if ((cs.position === 'absolute' || cs.position === 'sticky') && cs.right !== 'auto') {
+          // absolute 요소는 right 값을 늘려서 밀어냄
+          const curRight = parseFloat(cs.right) || 0;
+          _pushedEls.push({ el, prop: 'right', prev: el.style.right });
+          el.style.setProperty('right', (curRight + PW) + 'px', 'important');
+        } else {
+          _pushedEls.push({ el, prop: 'marginRight', prev: el.style.marginRight });
+          el.style.setProperty('margin-right', PW + 'px', 'important');
+        }
+        // 이 요소를 처리했으면 자식은 탐색 안 함
+      } else {
+        nextLevel.push(...el.children);
+      }
+    }
+    level = nextLevel;
+  }
+}
+
+function _restoreContent() {
+  for (const { el, prop, prev } of _pushedEls) {
+    const cssProp = prop === 'marginRight' ? 'margin-right' : 'right';
+    if (prev) el.style[prop] = prev;
+    else el.style.removeProperty(cssProp);
+  }
+  _pushedEls = [];
+}
+
 function openPanel() {
   explainPanel.classList.add('lh-open');
   document.documentElement.classList.add('lh-panel-open');
   document.body.classList.add('lh-panel-open');
+  _pushContent();
   document.querySelectorAll('iframe').forEach(fr => {
     fr.dataset.lhPrevZ = fr.style.zIndex;
     fr.style.setProperty('z-index', '-1', 'important');
@@ -232,6 +294,7 @@ function closePanel() {
   explainPanel.classList.remove('lh-open');
   document.documentElement.classList.remove('lh-panel-open');
   document.body.classList.remove('lh-panel-open');
+  _restoreContent();
   document.querySelectorAll('iframe').forEach(fr => {
     fr.style.zIndex = fr.dataset.lhPrevZ || '';
     delete fr.dataset.lhPrevZ;

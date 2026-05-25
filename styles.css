@@ -4,6 +4,8 @@ html.lh-panel-open {
 }
 body.lh-panel-open {
   margin-right: 360px !important;
+  max-width: calc(100vw - 360px) !important;
+  min-width: 0 !important;
   overflow-x: hidden !important;
   transition: margin-right 0.28s ease;
 }
