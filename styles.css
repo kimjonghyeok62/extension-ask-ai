@@ -47,3 +47,9 @@
   background: linear-gradient(135deg, #D97B3A 0%, #8B4A1E 100%);
   color: #fff;
 }
+
+/* OpenAI ChatGPT 계열 색상 */
+.ai-chatgpt-btn {
+  background: linear-gradient(135deg, #10a37f 0%, #0d7a60 100%);
+  color: #fff;
+}

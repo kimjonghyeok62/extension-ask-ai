@@ -3,6 +3,7 @@
 const AI_URLS = {
   claude: 'https://claude.ai/new',
   gemini: 'https://gemini.google.com/app',
+  chatgpt: 'https://chatgpt.com/',
 };
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
