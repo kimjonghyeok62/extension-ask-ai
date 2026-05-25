@@ -83,8 +83,12 @@ function openAI(service) {
     type: 'AI_OPEN',
     service,
     prompt,
-    screenWidth: window.screen.availWidth,
-    screenHeight: window.screen.availHeight,
+    screen: {
+      left:   window.screen.availLeft  || 0,
+      top:    window.screen.availTop   || 0,
+      width:  window.screen.availWidth,
+      height: window.screen.availHeight,
+    },
   });
 }
 

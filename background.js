@@ -8,7 +8,7 @@ const AI_URLS = {
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg.type === 'AI_OPEN') {
-    handleOpen(msg.service, msg.prompt, msg.screenWidth, msg.screenHeight, sender.tab?.windowId);
+    handleOpen(msg.service, msg.prompt, msg.screen, sender.tab?.windowId);
   }
 });
 
@@ -34,7 +34,7 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
   } catch {}
 });
 
-async function handleOpen(service, prompt, screenWidth, screenHeight, sourceWindowId) {
+async function handleOpen(service, prompt, screen, sourceWindowId) {
   const url = AI_URLS[service];
   if (!url) return;
 
@@ -42,32 +42,21 @@ async function handleOpen(service, prompt, screenWidth, screenHeight, sourceWind
     [`ai_pending_${service}`]: { prompt, ts: Date.now() },
   });
 
-  // chrome.system.display로 실제 작업 영역 취득 (DPI 스케일링·멀티모니터 대응)
-  // content.js의 window.screen 값은 DPI 환경에 따라 오차가 생길 수 있으므로 fallback으로만 사용
-  let wa = { left: 0, top: 0, width: screenWidth || 1920, height: screenHeight || 1080 };
-  try {
-    const displays = await chrome.system.display.getInfo();
-    let display;
-    if (sourceWindowId) {
-      const win = await chrome.windows.get(sourceWindowId);
-      const cx = win.left + win.width  / 2;
-      const cy = win.top  + win.height / 2;
-      display = displays.find(d =>
-        cx >= d.workArea.left && cx < d.workArea.left + d.workArea.width &&
-        cy >= d.workArea.top  && cy < d.workArea.top  + d.workArea.height
-      );
-    }
-    display = display || displays.find(d => d.isPrimary) || displays[0];
-    if (display && display.workArea) wa = display.workArea;
-  } catch {}
+  // window.screen.avail* 값 사용 — chrome.windows API와 동일한 논리 픽셀 좌표계
+  // availLeft/availTop: 태스크바가 왼쪽·위에 있거나 멀티모니터 오프셋 대응
+  const sl = screen?.left   || 0;
+  const st = screen?.top    || 0;
+  const sw = screen?.width  || 1920;
+  const sh = screen?.height || 1080;
 
-  const sw = wa.width;
-  const sh = wa.height;
   const mainWidth = Math.round(sw * 0.75);
-  // DWM 비가시 테두리 보정: 두 창 사이 8px×2=16px 빈틈을 없애 시각적으로 붙어 보이게 함
-  const sideLeft  = wa.left + mainWidth - 16;
-  // 우측 여유 8px 확보 → DWM 그림자와 무관하게 X버튼이 항상 화면 안에 표시됨
-  const sideWidth = sw - mainWidth + 8;
+  // DWM 비가시 테두리 보정: 두 창 사이 8px×2=16px 빈틈 제거 (시각적으로 붙어 보이게)
+  const rawSideLeft  = sl + mainWidth - 16;
+  // 오른쪽에서 최소 12px 여유 + Chrome 최소 창 너비(360px) 보장
+  const rawSideWidth = sw - mainWidth + 12;
+  const sideWidth    = Math.max(rawSideWidth, 360);
+  // sideWidth가 클램프된 경우 sideLeft를 왼쪽으로 당겨 화면 안에 맞춤
+  const sideLeft     = Math.min(rawSideLeft, sl + sw - sideWidth - 12);
 
   // 원본 창의 현재 크기·위치·상태 저장
   let originalBounds = null;
@@ -86,8 +75,8 @@ async function handleOpen(service, prompt, screenWidth, screenHeight, sourceWind
 
     await chrome.windows.update(sourceWindowId, {
       state: 'normal',
-      left: wa.left,
-      top:  wa.top,
+      left: sl,
+      top:  st,
       width: mainWidth,
       height: sh,
     });
@@ -98,7 +87,7 @@ async function handleOpen(service, prompt, screenWidth, screenHeight, sourceWind
     url,
     type: 'normal',
     left: sideLeft,
-    top:  wa.top,
+    top:  st,
     width:  sideWidth,
     height: sh,
   });
