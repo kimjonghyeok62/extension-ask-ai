@@ -5,7 +5,18 @@
   "description": "어느 웹페이지에서든 텍스트를 드래그하면 Gemini·Claude로 쉽게 설명합니다.",
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icons/icon.svg"
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   },
   "background": {
     "service_worker": "background.js"
