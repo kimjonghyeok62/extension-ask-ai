@@ -69,11 +69,36 @@ function hideToolbar() {
   if (toolbar) toolbar.classList.remove('ai-visible');
 }
 
+function detectTextType(text) {
+  const legalPatterns = [
+    /제\s*\d+\s*조/, /제\s*\d+\s*항/, /제\s*\d+\s*호/,
+    /법률\s*제\d+호/, /조례|시행령|시행규칙|헌법/,
+    /법원|판결|판례|형법|민법|상법|행정법/,
+  ];
+  if (legalPatterns.some(p => p.test(text))) return 'legal';
+
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length >= 3 && text.length / lines.length < 25) return 'literary';
+
+  return 'general';
+}
+
+function buildPrompt(text) {
+  const type = detectTextType(text);
+  if (type === 'legal') {
+    return `${text}\n\n위 법령 조문을 중학생도 이해할 수 있게 쉽게 설명하고, 인용된 조항이 있다면 그 조항도 간략히 요약해줘`;
+  }
+  if (type === 'literary') {
+    return `${text}\n\n위 문학 작품(시·소설·수필 등)의 내용과 의미를 중학생도 이해할 수 있게 쉽게 설명해줘`;
+  }
+  return `${text}\n\n위 내용을 중학생도 이해할 수 있게 쉽게 설명해줘`;
+}
+
 function openAI(service) {
   if (!selectedText) return;
   hideToolbar();
 
-  const prompt = `${selectedText}\n\n위 내용을 쉽게 설명해주세요`;
+  const prompt = buildPrompt(selectedText);
 
   // 사용자 제스처가 살아있는 지금 클립보드에 기록 (inject 스크립트는 제스처 없음)
   // HTTP 페이지는 navigator.clipboard 자체가 undefined — optional chaining으로 무시

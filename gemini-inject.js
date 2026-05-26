@@ -43,7 +43,31 @@
   }
 
   tryInject(activeInput, pending.prompt, selectors);
+
+  // Angular 재렌더링 후 커서가 처음으로 리셋될 수 있으므로 딜레이 후 재보정
+  [200, 500, 900].forEach(ms =>
+    setTimeout(() => {
+      const el = selectors.reduce((found, sel) => found || document.querySelector(sel), null) || activeInput;
+      if (el) moveCursorToEnd(el);
+    }, ms)
+  );
 })();
+
+// ── 커서 끝으로 이동 ──────────────────────────────────────────────────────────
+
+function moveCursorToEnd(el) {
+  el.focus();
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+    el.selectionStart = el.selectionEnd = el.value.length;
+  } else {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
 
 // ── 주입 시도 ─────────────────────────────────────────────────────────────────
 
@@ -62,7 +86,7 @@ function tryInject(el, text, selectors) {
       setter.call(el, text);
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-      if (el.value.trim()) return true;
+      if (el.value.trim()) { moveCursorToEnd(el); return true; }
     } catch {}
   }
 
@@ -79,6 +103,7 @@ function tryInject(el, text, selectors) {
     el.dispatchEvent(pasteEvent);
     if (el.textContent.trim().includes(text.trim())) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
+      moveCursorToEnd(el);
       return true;
     }
   } catch {}
@@ -93,6 +118,7 @@ function tryInject(el, text, selectors) {
     const ok = document.execCommand('insertText', false, text);
     if (ok && el.textContent.trim()) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
+      moveCursorToEnd(el);
       return true;
     }
   } catch {}
@@ -105,6 +131,7 @@ function tryInject(el, text, selectors) {
     const ok = document.execCommand('insertText', false, text);
     if (ok && el.textContent.trim()) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
+      moveCursorToEnd(el);
       return true;
     }
   } catch {}
@@ -113,7 +140,7 @@ function tryInject(el, text, selectors) {
   try {
     el.innerText = text;
     ['input', 'change', 'blur'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
-    if (el.textContent.trim()) return true;
+    if (el.textContent.trim()) { moveCursorToEnd(el); return true; }
   } catch {}
 
   return false;

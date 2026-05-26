@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI 쉬운 설명",
   "version": "2.0.0",
-  "description": "어느 웹페이지에서든 텍스트를 드래그하면 Gemini·Claude로 쉽게 설명합니다.",
+  "description": "어느 웹페이지에서든 텍스트를 드래그하면 Gemini·Claude·ChatGPT로 쉽게 설명합니다.",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
