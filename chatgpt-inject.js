@@ -56,6 +56,7 @@
         // 성공 판정: 주입 함수가 true를 리턴했고, 입력 필드 텍스트가 실제로 목표 프롬프트를 포함할 때
         if (success && currentText.trim().includes(pending.prompt.trim())) {
           clearInterval(interval);
+          moveCursorToEnd(activeInput);
           console.log("[AskAI] Prompt successfully injected and stabilized.");
           return;
         }
@@ -72,6 +73,22 @@
 
   await startInjection();
 })();
+
+// ── 커서 끝으로 이동 ──────────────────────────────────────────────────────────
+
+function moveCursorToEnd(el) {
+  el.focus();
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+    el.selectionStart = el.selectionEnd = el.value.length;
+  } else {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
 
 // ── 주입 시도 ─────────────────────────────────────────────────────────────────
 

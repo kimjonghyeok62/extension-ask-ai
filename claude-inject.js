@@ -44,6 +44,18 @@
   tryInject(activeInput, pending.prompt, selectors);
 })();
 
+// ── 커서 끝으로 이동 ──────────────────────────────────────────────────────────
+
+function moveCursorToEnd(el) {
+  el.focus();
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 // ── 주입 시도 ─────────────────────────────────────────────────────────────────
 
 function tryInject(el, text, selectors) {
@@ -67,6 +79,7 @@ function tryInject(el, text, selectors) {
     el.dispatchEvent(pasteEvent);
     if (el.textContent.trim().includes(text.trim())) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
+      moveCursorToEnd(el);
       return true;
     }
   } catch {}
@@ -81,6 +94,7 @@ function tryInject(el, text, selectors) {
     const ok = document.execCommand('insertText', false, text);
     if (ok && el.textContent.trim()) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
+      moveCursorToEnd(el);
       return true;
     }
   } catch {}
@@ -89,7 +103,7 @@ function tryInject(el, text, selectors) {
   try {
     el.innerText = text;
     ['input', 'change'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
-    if (el.textContent.trim()) return true;
+    if (el.textContent.trim()) { moveCursorToEnd(el); return true; }
   } catch {}
 
   return false;
