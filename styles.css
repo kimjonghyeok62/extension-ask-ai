@@ -53,3 +53,10 @@
   background: linear-gradient(135deg, #10a37f 0%, #0d7a60 100%);
   color: #fff;
 }
+
+/* Copy 버튼 — 구분을 위해 중립적 색상 */
+.ai-copy-btn {
+  background: #f0f0f0;
+  color: #444;
+  border: 1px solid #ddd;
+}
