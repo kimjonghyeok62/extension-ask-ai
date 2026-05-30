@@ -1,26 +1,64 @@
 'use strict';
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const toggle     = document.getElementById('toggle');
-  const optionsBtn = document.getElementById('open-options');
-  const statusEl   = document.getElementById('status');
+const PRESETS = {
+  explain_middle: '위 내용을 중학생도 이해할 수 있게 쉽게 설명해줘',
+  explain_simple: '위 내용을 한 문장으로 아주 간단하게 요약해줘',
+  explain_pro:    '위 내용을 전문가 수준으로 배경지식과 함께 자세히 설명해줘',
+  translate_en:   '위 내용을 자연스러운 영어로 번역해줘',
+  translate_ko:   '위 내용을 자연스러운 한국어로 번역해줘',
+  key_points:     '위 내용의 핵심 포인트만 bullet 형식으로 정리해줘',
+  pros_cons:      '위 내용의 장점과 단점을 분석해줘',
+};
 
-  const data = await chrome.storage.local.get(['lh_enabled', 'lh_api_key']);
-  toggle.checked = data.lh_enabled !== false;
+const sel      = document.getElementById('preset-select');
+const custom   = document.getElementById('custom-input');
+const saveBtn  = document.getElementById('save-btn');
+const savedMsg = document.getElementById('saved-msg');
+const preview  = document.getElementById('preview');
 
-  if (data.lh_api_key) {
-    statusEl.textContent = 'API 키 설정됨';
-    statusEl.style.color = '#1e7e34';
-  } else {
-    statusEl.textContent = '⚙ API 키 설정을 눌러 키를 등록하세요.';
-    statusEl.style.color = '#c62828';
+function updateUI(value, customText) {
+  const isCustom = value === 'custom';
+  custom.classList.toggle('visible', isCustom);
+  saveBtn.classList.toggle('visible', isCustom);
+
+  const suffix = isCustom ? (customText || '') : PRESETS[value] || '';
+  preview.innerHTML = suffix
+    ? `끝에 붙을 요청: <em>${suffix}</em>`
+    : '';
+}
+
+async function load() {
+  const { ai_prompt_preset: saved } = await chrome.storage.local.get('ai_prompt_preset');
+  const value      = saved?.value      || 'explain_middle';
+  const customText = saved?.customText || '';
+
+  sel.value = value;
+  if (value === 'custom') custom.value = customText;
+  updateUI(value, customText);
+}
+
+sel.addEventListener('change', async () => {
+  const value = sel.value;
+  if (value !== 'custom') {
+    await chrome.storage.local.set({ ai_prompt_preset: { value, customText: '' } });
+    showSaved();
   }
-
-  toggle.addEventListener('change', async () => {
-    await chrome.storage.local.set({ lh_enabled: toggle.checked });
-  });
-
-  optionsBtn.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
-  });
+  updateUI(value, custom.value);
 });
+
+custom.addEventListener('input', () => {
+  updateUI('custom', custom.value.trim());
+});
+
+saveBtn.addEventListener('click', async () => {
+  const customText = custom.value.trim();
+  await chrome.storage.local.set({ ai_prompt_preset: { value: 'custom', customText } });
+  showSaved();
+});
+
+function showSaved() {
+  savedMsg.textContent = '✓ 저장됨';
+  setTimeout(() => { savedMsg.textContent = ''; }, 1500);
+}
+
+load();
