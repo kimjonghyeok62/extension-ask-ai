@@ -23,10 +23,20 @@ function updateUI(value, customText) {
   custom.classList.toggle('visible', isCustom);
   saveBtn.classList.toggle('visible', isCustom);
 
-  const suffix = isCustom ? (customText || '') : PRESETS[value] || '';
-  preview.innerHTML = suffix
-    ? `끝에 붙을 요청: <em>${suffix}</em>`
-    : '';
+  let suffix = '';
+  if (value === 'copy_only') {
+    preview.innerHTML = '선택한 텍스트만 입력됩니다. 사용자가 직접 질문을 입력할 수 있습니다.';
+    preview.classList.add('visible');
+    return;
+  }
+  suffix = isCustom ? (customText || '') : PRESETS[value] || '';
+  if (suffix) {
+    preview.innerHTML = `끝에 붙을 요청: <em>${suffix}</em>`;
+    preview.classList.add('visible');
+  } else {
+    preview.innerHTML = '';
+    preview.classList.remove('visible');
+  }
 }
 
 function applyToggle(enabled) {
@@ -34,16 +44,11 @@ function applyToggle(enabled) {
   tipBox.classList.toggle('disabled', !enabled);
 }
 
-const cfgMinChars  = document.getElementById('cfg-min-chars');
-const cfgSplitRatio = document.getElementById('cfg-split-ratio');
-const cfgSave      = document.getElementById('cfg-save');
-const cfgOk        = document.getElementById('cfg-ok');
-
 async function load() {
   const stored = await chrome.storage.local.get(
-    ['ai_prompt_preset', 'ai_enabled', 'ai_min_chars', 'ai_split_ratio']
+    ['ai_prompt_preset', 'ai_enabled']
   );
-  const value      = stored.ai_prompt_preset?.value      || 'explain_middle';
+  const value      = stored.ai_prompt_preset?.value      || 'copy_only';
   const customText = stored.ai_prompt_preset?.customText || '';
   const enabled    = stored.ai_enabled ?? true;
 
@@ -51,19 +56,7 @@ async function load() {
   if (value === 'custom') custom.value = customText;
   updateUI(value, customText);
   applyToggle(enabled);
-
-  cfgMinChars.value   = stored.ai_min_chars   || 10;
-  cfgSplitRatio.value = String(stored.ai_split_ratio || 0.75);
 }
-
-cfgSave.addEventListener('click', async () => {
-  const minVal   = parseInt(cfgMinChars.value, 10);
-  const ratioVal = parseFloat(cfgSplitRatio.value);
-  if (!minVal || minVal < 1) return;
-  await chrome.storage.local.set({ ai_min_chars: minVal, ai_split_ratio: ratioVal });
-  cfgOk.textContent = '✓';
-  setTimeout(() => { cfgOk.textContent = ''; }, 1500);
-});
 
 toggle.addEventListener('change', async () => {
   const enabled = toggle.checked;
