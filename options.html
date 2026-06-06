@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>법 쉽게 설명 — 설정</title>
+  <title>AI 쉬운 설명 — 설정</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,6 +40,23 @@
       line-height: 1.5;
     }
 
+    input[type="number"], select.opt-select {
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      background: #fafafa;
+    }
+    input[type="number"] { width: 90px; }
+    select.opt-select { width: 200px; }
+    input[type="number"]:focus, select.opt-select:focus {
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 3px #e8f0fe;
+    }
+
     input[type="password"], input[type="text"] {
       width: 100%;
       padding: 9px 12px;
@@ -52,32 +69,40 @@
     }
     input:focus { border-color: #1a73e8; box-shadow: 0 0 0 3px #e8f0fe; }
 
-    .row-btn {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
+    .row-inline { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
 
-    button {
-      padding: 8px 18px;
+    button.save-btn {
+      padding: 8px 16px;
       border: none;
       border-radius: 8px;
+      background: #1a73e8;
+      color: #fff;
       font-size: 13px;
       font-family: inherit;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s;
     }
+    button.save-btn:hover { background: #1558b0; }
 
-    #save { background: #1a73e8; color: #fff; }
-    #save:hover { background: #1558b0; }
-
+    .row-btn { display: flex; gap: 8px; margin-top: 10px; }
     #toggle-vis {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
       background: #f1f3f4;
       color: #555;
-      font-weight: 500;
     }
     #toggle-vis:hover { background: #e2e6ea; }
+
+    .saved-ok {
+      font-size: 11px;
+      color: #1e7e34;
+    }
 
     #status {
       margin-top: 14px;
@@ -103,7 +128,32 @@
   </style>
 </head>
 <body>
-  <h1>법 쉽게 설명 — 설정</h1>
+  <h1>AI 쉬운 설명 — 설정</h1>
+
+  <div class="section">
+    <div class="field-label">툴바 활성 최소 글자 수</div>
+    <div class="field-desc">텍스트를 드래그할 때 이 글자 수 이상이어야 툴바가 나타납니다. (기본: 10)</div>
+    <div class="row-inline">
+      <input type="number" id="min-chars" min="1" max="200" value="10">
+      <button class="save-btn" id="save-min-chars">저장</button>
+      <span class="saved-ok" id="min-chars-ok"></span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="field-label">창 분할 비율 (내 창 : AI 창)</div>
+    <div class="field-desc">AI 버튼 클릭 시 화면을 나누는 비율입니다.</div>
+    <div class="row-inline">
+      <select class="opt-select" id="split-ratio">
+        <option value="0.75">75 : 25 (기본)</option>
+        <option value="0.70">70 : 30</option>
+        <option value="0.65">65 : 35</option>
+        <option value="0.60">60 : 40</option>
+      </select>
+      <button class="save-btn" id="save-split">저장</button>
+      <span class="saved-ok" id="split-ok"></span>
+    </div>
+  </div>
 
   <div class="section">
     <div class="field-label">Claude API 키</div>
@@ -113,7 +163,7 @@
     </div>
     <input type="password" id="api-key" placeholder="sk-ant-api03-...">
     <div class="row-btn">
-      <button id="save">저장</button>
+      <button class="save-btn" id="save">저장</button>
       <button id="toggle-vis">표시</button>
     </div>
     <div id="status"></div>

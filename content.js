@@ -1,10 +1,37 @@
 'use strict';
 
-let toolbar = null;
+let toolbar      = null;
 let selectedText = '';
+let aiEnabled    = true;   // ai_enabled 스토리지 값 캐시
+let minCharsCache = 10;    // ai_min_chars 스토리지 값 캐시
+
+// 스토리지 변경 실시간 반영
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.ai_enabled) {
+    aiEnabled = changes.ai_enabled.newValue ?? true;
+    if (!aiEnabled) hideToolbar();
+  }
+  if (changes.ai_min_chars) {
+    minCharsCache = changes.ai_min_chars.newValue || 10;
+  }
+});
 
 function init() {
   if (document.getElementById('ai-toolbar')) return;
+
+  // 초기 설정 로드 + 화면 정보 캐싱 (컨텍스트 메뉴에서 사용)
+  chrome.storage.local.get(['ai_enabled', 'ai_min_chars']).then((stored) => {
+    aiEnabled     = stored.ai_enabled     ?? true;
+    minCharsCache = stored.ai_min_chars   || 10;
+  });
+  chrome.storage.local.set({
+    ai_screen: {
+      left:   window.screen.availLeft  || 0,
+      top:    window.screen.availTop   || 0,
+      width:  window.screen.availWidth,
+      height: window.screen.availHeight,
+    },
+  });
 
   toolbar = document.createElement('div');
   toolbar.id = 'ai-toolbar';
@@ -34,12 +61,13 @@ function onMouseDown(e) {
 
 function onMouseUp(e) {
   if (e.target.closest('#ai-toolbar')) return;
+  if (!aiEnabled) return;
 
   setTimeout(() => {
     const sel = window.getSelection();
     const text = sel ? sel.toString().trim() : '';
 
-    if (text.length >= 10) {
+    if (text.length >= minCharsCache) {
       selectedText = text;
       positionToolbar(e, sel);
     }
