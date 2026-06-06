@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI 쉬운 설명",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "어느 웹페이지에서든 텍스트를 드래그하면 Gemini·Claude·ChatGPT로 쉽게 설명합니다.",
   "action": {
     "default_popup": "popup.html",
@@ -54,6 +54,6 @@
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["storage", "windows", "clipboardWrite"],
+  "permissions": ["storage", "windows", "clipboardWrite", "contextMenus"],
   "host_permissions": ["<all_urls>"]
 }

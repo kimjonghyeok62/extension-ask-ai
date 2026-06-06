@@ -6,6 +6,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   const toggleBtn = document.getElementById('toggle-vis');
   const statusEl  = document.getElementById('status');
 
+  // ── 최소 글자 수 ──
+  const minCharsInput = document.getElementById('min-chars');
+  const minCharsOk    = document.getElementById('min-chars-ok');
+  const { ai_min_chars } = await chrome.storage.local.get('ai_min_chars');
+  minCharsInput.value = ai_min_chars || 10;
+
+  document.getElementById('save-min-chars').addEventListener('click', async () => {
+    const val = parseInt(minCharsInput.value, 10);
+    if (!val || val < 1) return;
+    await chrome.storage.local.set({ ai_min_chars: val });
+    showOk(minCharsOk);
+  });
+
+  // ── 창 분할 비율 ──
+  const splitSelect = document.getElementById('split-ratio');
+  const splitOk     = document.getElementById('split-ok');
+  const { ai_split_ratio } = await chrome.storage.local.get('ai_split_ratio');
+  splitSelect.value = String(ai_split_ratio || 0.75);
+
+  document.getElementById('save-split').addEventListener('click', async () => {
+    const val = parseFloat(splitSelect.value);
+    await chrome.storage.local.set({ ai_split_ratio: val });
+    showOk(splitOk);
+  });
+
+  function showOk(el) {
+    el.textContent = '✓ 저장됨';
+    setTimeout(() => { el.textContent = ''; }, 1500);
+  }
+
+  // ── API 키 ──
   const { lh_api_key } = await chrome.storage.local.get('lh_api_key');
   if (lh_api_key) input.value = lh_api_key;
 

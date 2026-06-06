@@ -15,6 +15,8 @@ const custom   = document.getElementById('custom-input');
 const saveBtn  = document.getElementById('save-btn');
 const savedMsg = document.getElementById('saved-msg');
 const preview  = document.getElementById('preview');
+const toggle   = document.getElementById('enabled-toggle');
+const tipBox   = document.getElementById('tip-box');
 
 function updateUI(value, customText) {
   const isCustom = value === 'custom';
@@ -27,15 +29,47 @@ function updateUI(value, customText) {
     : '';
 }
 
+function applyToggle(enabled) {
+  toggle.checked = enabled;
+  tipBox.classList.toggle('disabled', !enabled);
+}
+
+const cfgMinChars  = document.getElementById('cfg-min-chars');
+const cfgSplitRatio = document.getElementById('cfg-split-ratio');
+const cfgSave      = document.getElementById('cfg-save');
+const cfgOk        = document.getElementById('cfg-ok');
+
 async function load() {
-  const { ai_prompt_preset: saved } = await chrome.storage.local.get('ai_prompt_preset');
-  const value      = saved?.value      || 'explain_middle';
-  const customText = saved?.customText || '';
+  const stored = await chrome.storage.local.get(
+    ['ai_prompt_preset', 'ai_enabled', 'ai_min_chars', 'ai_split_ratio']
+  );
+  const value      = stored.ai_prompt_preset?.value      || 'explain_middle';
+  const customText = stored.ai_prompt_preset?.customText || '';
+  const enabled    = stored.ai_enabled ?? true;
 
   sel.value = value;
   if (value === 'custom') custom.value = customText;
   updateUI(value, customText);
+  applyToggle(enabled);
+
+  cfgMinChars.value   = stored.ai_min_chars   || 10;
+  cfgSplitRatio.value = String(stored.ai_split_ratio || 0.75);
 }
+
+cfgSave.addEventListener('click', async () => {
+  const minVal   = parseInt(cfgMinChars.value, 10);
+  const ratioVal = parseFloat(cfgSplitRatio.value);
+  if (!minVal || minVal < 1) return;
+  await chrome.storage.local.set({ ai_min_chars: minVal, ai_split_ratio: ratioVal });
+  cfgOk.textContent = '✓';
+  setTimeout(() => { cfgOk.textContent = ''; }, 1500);
+});
+
+toggle.addEventListener('change', async () => {
+  const enabled = toggle.checked;
+  await chrome.storage.local.set({ ai_enabled: enabled });
+  applyToggle(enabled);
+});
 
 sel.addEventListener('change', async () => {
   const value = sel.value;
