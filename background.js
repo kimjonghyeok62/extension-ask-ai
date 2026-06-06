@@ -152,9 +152,7 @@ async function handleOpen(service, prompt, screen, sourceWindowId) {
     }
   }
 
-  // 분할 비율 읽기 (기본 0.75 = 75/25)
-  const ratioStored = await chrome.storage.local.get('ai_split_ratio');
-  const mainRatio = ratioStored.ai_split_ratio || 0.75;
+  const mainRatio = 0.75;
 
   const sl = screen?.left   || 0;
   const st = screen?.top    || 0;

@@ -3,7 +3,7 @@
 let toolbar      = null;
 let selectedText = '';
 let aiEnabled    = true;   // ai_enabled 스토리지 값 캐시
-let minCharsCache = 10;    // ai_min_chars 스토리지 값 캐시
+const MIN_CHARS  = 10;
 
 // 스토리지 변경 실시간 반영
 chrome.storage.onChanged.addListener((changes) => {
@@ -11,18 +11,14 @@ chrome.storage.onChanged.addListener((changes) => {
     aiEnabled = changes.ai_enabled.newValue ?? true;
     if (!aiEnabled) hideToolbar();
   }
-  if (changes.ai_min_chars) {
-    minCharsCache = changes.ai_min_chars.newValue || 10;
-  }
 });
 
 function init() {
   if (document.getElementById('ai-toolbar')) return;
 
   // 초기 설정 로드 + 화면 정보 캐싱 (컨텍스트 메뉴에서 사용)
-  chrome.storage.local.get(['ai_enabled', 'ai_min_chars']).then((stored) => {
-    aiEnabled     = stored.ai_enabled     ?? true;
-    minCharsCache = stored.ai_min_chars   || 10;
+  chrome.storage.local.get(['ai_enabled']).then((stored) => {
+    aiEnabled = stored.ai_enabled ?? true;
   });
   chrome.storage.local.set({
     ai_screen: {
@@ -39,15 +35,13 @@ function init() {
     <button class="ai-btn ai-gemini-btn" data-ai="gemini" title="Gemini로 설명">Gemini</button>
     <button class="ai-btn ai-claude-btn" data-ai="claude" title="Claude로 설명">Claude</button>
     <button class="ai-btn ai-chatgpt-btn" data-ai="chatgpt" title="ChatGPT로 설명">ChatGPT</button>
-    <button class="ai-btn ai-copy-btn" data-ai="copy" title="텍스트 복사">Copy</button>
   `;
   document.body.appendChild(toolbar);
 
   toolbar.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-ai]');
     if (!btn) return;
-    if (btn.dataset.ai === 'copy') copyText();
-    else openAI(btn.dataset.ai);
+    openAI(btn.dataset.ai);
   });
 
   document.addEventListener('mouseup', onMouseUp);
@@ -67,7 +61,7 @@ function onMouseUp(e) {
     const sel = window.getSelection();
     const text = sel ? sel.toString().trim() : '';
 
-    if (text.length >= minCharsCache) {
+    if (text.length >= MIN_CHARS) {
       selectedText = text;
       positionToolbar(e, sel);
     }
@@ -126,8 +120,10 @@ function detectTextType(text) {
 
 async function buildPrompt(text) {
   const { ai_prompt_preset: saved } = await chrome.storage.local.get('ai_prompt_preset');
-  const value      = saved?.value      || 'explain_middle';
+  const value      = saved?.value      || 'copy_only';
   const customText = saved?.customText || '';
+
+  if (value === 'copy_only') return text;
 
   let suffix;
   if (value === 'custom') {
@@ -172,12 +168,6 @@ async function openAI(service) {
       height: window.screen.availHeight,
     },
   });
-}
-
-function copyText() {
-  if (!selectedText) return;
-  hideToolbar();
-  navigator.clipboard?.writeText(selectedText).catch(() => {});
 }
 
 if (document.readyState === 'loading') {

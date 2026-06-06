@@ -59,6 +59,7 @@ function moveCursorToEnd(el) {
   el.focus();
   if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
     el.selectionStart = el.selectionEnd = el.value.length;
+    el.scrollTop = el.scrollHeight;
   } else {
     const range = document.createRange();
     const sel = window.getSelection();
@@ -66,6 +67,12 @@ function moveCursorToEnd(el) {
     range.collapse(false);
     sel.removeAllRanges();
     sel.addRange(range);
+    // 커서가 화면에 보이도록 스크롤
+    const rect = range.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight || rect.top < 0) {
+      el.scrollTop = el.scrollHeight;
+    }
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 }
 
