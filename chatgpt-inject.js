@@ -23,10 +23,7 @@
   ];
 
   const input = await waitForInput(selectors);
-  if (!input) {
-    console.error('[AskAI] ChatGPT 입력창을 찾지 못했습니다.');
-    return;
-  }
+  if (!input) return;
 
   // 주입 직전: 더 최신 요청이 들어왔거나 이미 다른 inject가 처리했으면 포기
   const recheck = await chrome.storage.local.get(KEY);
@@ -40,6 +37,9 @@
     attempt++;
     const el = selectors.reduce((f, s) => f || document.querySelector(s), null) || input;
 
+    // draft 복원으로 기존 내용이 남아있을 수 있으므로 주입 전 명시적으로 지움
+    clearInput(el);
+
     el.focus();
     const success = tryInject(el, pending.prompt);
 
@@ -47,6 +47,8 @@
     if (success && currentText.trim().length > 0) {
       clearInterval(interval);
       moveCursorToEnd(el);
+      // ChatGPT draft 복원이 뒤늦게 일어나 덮어쓸 수 있으므로 2초간 감시
+      watchAndRestore(el, selectors, pending.prompt);
       return;
     }
 
@@ -55,6 +57,33 @@
     }
   }, 300);
 })();
+
+// ── 입력창 기존 내용 지우기 ───────────────────────────────────
+function clearInput(el) {
+  try {
+    el.focus();
+    document.execCommand('selectAll', false, null);
+    document.execCommand('delete', false, null);
+  } catch {}
+}
+
+// ── 주입 후 draft 복원 감시 및 재주입 ────────────────────────
+function watchAndRestore(el, selectors, prompt) {
+  const expected = prompt.trim().slice(0, 40); // 앞 40자로 비교
+  let checks = 0;
+  const watcher = setInterval(() => {
+    checks++;
+    const current = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+    if (!current.trim().startsWith(expected)) {
+      // ChatGPT가 draft로 덮어씀 → 재주입
+      const fresh = selectors.reduce((f, s) => f || document.querySelector(s), null) || el;
+      clearInput(fresh);
+      tryInject(fresh, prompt);
+      moveCursorToEnd(fresh);
+    }
+    if (checks >= 10) clearInterval(watcher); // 2초(200ms×10) 후 종료
+  }, 200);
+}
 
 // ── 커서 끝으로 이동 ──────────────────────────────────────────
 function moveCursorToEnd(el) {
@@ -192,8 +221,8 @@ function waitForInput(selectors, maxMs = 15000) {
 
     const el = find();
     if (el) {
-      // 이미 있으면 800ms 후 반환 (React 초기화 대기)
-      setTimeout(() => resolve(el), 800);
+      // 이미 있으면 1500ms 후 반환 (React 초기화 + draft 복원 대기)
+      setTimeout(() => resolve(el), 1500);
       return;
     }
 
