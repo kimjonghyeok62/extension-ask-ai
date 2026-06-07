@@ -9,8 +9,7 @@
 
   if (!pending) return;
   if (Date.now() - pending.ts > 30000) return;
-
-  await chrome.storage.local.remove(KEY);
+  const claimedTs = pending.ts;
 
   // ChatGPT의 입력창 셀렉터 (우선순위 순)
   // div#prompt-textarea 는 ProseMirror 기반 contenteditable
@@ -29,6 +28,11 @@
     return;
   }
 
+  // 주입 직전: 더 최신 요청이 들어왔거나 이미 다른 inject가 처리했으면 포기
+  const recheck = await chrome.storage.local.get(KEY);
+  if (!recheck[KEY] || recheck[KEY].ts !== claimedTs) return;
+  await chrome.storage.local.remove(KEY);
+
   const maxAttempts = 20; // 300ms × 20 = 6초
   let attempt = 0;
 
@@ -43,13 +47,11 @@
     if (success && currentText.trim().length > 0) {
       clearInterval(interval);
       moveCursorToEnd(el);
-      console.log('[AskAI] ChatGPT 주입 성공 (attempt:', attempt, ')');
       return;
     }
 
     if (attempt >= maxAttempts) {
       clearInterval(interval);
-      console.error('[AskAI] ChatGPT 주입 실패 - 최대 시도 초과');
     }
   }, 300);
 })();

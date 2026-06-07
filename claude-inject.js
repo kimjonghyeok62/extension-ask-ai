@@ -6,7 +6,7 @@
   const pending = result[KEY];
 
   if (!pending || Date.now() - pending.ts > 30000) return;
-  await chrome.storage.local.remove(KEY);
+  const claimedTs = pending.ts;
 
   const selectors = [
     'div.ProseMirror[contenteditable="true"]',
@@ -17,6 +17,11 @@
 
   const input = await waitForInput(selectors);
   if (!input) return;
+
+  // 주입 직전: 더 최신 요청이 들어왔거나 이미 다른 inject가 처리했으면 포기
+  const recheck = await chrome.storage.local.get(KEY);
+  if (!recheck[KEY] || recheck[KEY].ts !== claimedTs) return;
+  await chrome.storage.local.remove(KEY);
 
   // DOM 갱신을 고려하여 주입 직전 최신 엘리먼트 다시 찾기
   let activeInput = document.body.contains(input) ? input : null;
@@ -36,7 +41,6 @@
   activeInput.focus();
   await new Promise(r => setTimeout(r, 300));
 
-  // 주입하기 직전 다시 한 번 확인
   if (!document.body.contains(activeInput)) {
     activeInput = selectors.reduce((found, sel) => found || document.querySelector(sel), null) || activeInput;
   }

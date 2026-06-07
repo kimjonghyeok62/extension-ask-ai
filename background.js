@@ -34,8 +34,10 @@ function detectTextType(text) {
 
 async function buildPrompt(text) {
   const { ai_prompt_preset: saved } = await chrome.storage.local.get('ai_prompt_preset');
-  const value      = saved?.value      || 'explain_middle';
+  const value      = saved?.value      || 'copy_only';
   const customText = saved?.customText || '';
+
+  if (value === 'copy_only') return text;
 
   let suffix;
   if (value === 'custom') {
