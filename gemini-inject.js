@@ -71,12 +71,15 @@ function moveCursorToEnd(el) {
     range.collapse(false);
     sel.removeAllRanges();
     sel.addRange(range);
-    // 커서가 화면에 보이도록 스크롤
-    const rect = range.getBoundingClientRect();
-    if (rect.bottom > window.innerHeight || rect.top < 0) {
-      el.scrollTop = el.scrollHeight;
+    // el 자체와 모든 스크롤 가능한 부모를 끝으로 스크롤
+    el.scrollTop = el.scrollHeight;
+    let node = el.parentElement;
+    while (node && node !== document.documentElement) {
+      if (node.scrollHeight > node.clientHeight + 1) {
+        node.scrollTop = node.scrollHeight;
+      }
+      node = node.parentElement;
     }
-    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 }
 
