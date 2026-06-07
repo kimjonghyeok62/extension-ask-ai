@@ -123,7 +123,7 @@ async function buildPrompt(text) {
   const value      = saved?.value      || 'copy_only';
   const customText = saved?.customText || '';
 
-  if (value === 'copy_only') return text;
+  if (value === 'copy_only') return text + '\n';
 
   let suffix;
   if (value === 'custom') {
